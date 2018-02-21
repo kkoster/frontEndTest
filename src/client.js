@@ -22,7 +22,14 @@ const store = createStore(_browserHistory, client, window.__data);
 const history = syncHistoryWithStore(_browserHistory, store);
 
 function initSocket() {
-  let socket = io('', {path: '/ws'});
+  let socket = io('', {
+    path: '/ws',
+    // Attempt to reconnect if connection is lost to Infinity and beyond
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: Infinity
+  });
   socket.on('snapshot', (data) => {
     console.log(data);
     socket.emit('my other event', { my: 'data from client' });
@@ -30,8 +37,11 @@ function initSocket() {
   socket.on('update', (data) => {
     console.log(data);
   });
-  socket.on('disconnect',() => {
-    socket = undefined;
+  socket.on('disconnect', () => {
+    // socket = undefined; // Don't destroy the socket since we have delegated reconnection to the component.
+  });
+  socket.on('reconnect', (...args) => {
+    console.log(args);
   });
   return socket;
 }
